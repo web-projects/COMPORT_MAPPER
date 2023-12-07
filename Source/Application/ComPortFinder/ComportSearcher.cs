@@ -48,7 +48,9 @@ namespace ComportMapper.ComPortFinder
                 foreach (ManagementObject managementObject in ComPortList)
                 {
                     StringBuilder buffer = new StringBuilder(128);
-                    buffer.AppendFormat($"{managementObject["Name"]},{managementObject["Status"]},{managementObject["ErrorDescription"] ?? "NOERRORS"}");
+
+                    // managementObject -> Properties -> Results View
+                    buffer.AppendFormat($"{managementObject["Name"]},{managementObject["Status"]},Code={managementObject["ConfigManagerErrorCode"] ?? "NOERRORS"}");
                     buffer
                        .Replace("(TM)", "™")
                        .Replace("(tm)", "™")
