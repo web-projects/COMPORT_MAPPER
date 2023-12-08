@@ -1,6 +1,6 @@
-﻿namespace Application.Config.LoggingConfig
+﻿namespace ComportMapper.Config.LoggingConfig
 {
-    internal class LoggerManager
+    public class LoggerManager
     {
         public Logging Logging { get; set; }
     }

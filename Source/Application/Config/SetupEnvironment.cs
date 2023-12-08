@@ -1,4 +1,5 @@
 ﻿using Common.LoggerManager;
+using ComportMapper.Config.Application;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Diagnostics;
@@ -6,8 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Application.Config
 {
@@ -22,6 +23,23 @@ namespace Application.Config
             public int Right;       // x position of lower-right corner
             public int Bottom;      // y position of lower-right corner
         }
+
+        private const int MF_BYCOMMAND = 0x00000000;
+        public const int SC_CLOSE = 0xF060;
+        public const int SC_MINIMIZE = 0xF020;
+        public const int SC_MAXIMIZE = 0xF030;
+        public const int SC_SIZE = 0xF000;
+        // window position
+        const short SWP_NOMOVE = 0X2;
+        const short SWP_NOSIZE = 1;
+        const short SWP_NOZORDER = 0X4;
+        const int SWP_SHOWWINDOW = 0x0040;
+
+        [DllImport("user32.dll")]
+        public static extern int DeleteMenu(IntPtr hMenu, int nPosition, int wFlags);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern IntPtr GetConsoleWindow();
@@ -39,10 +57,11 @@ namespace Application.Config
         public static extern bool GetWindowRect(IntPtr hwnd, ref Rect rectangle);
 
         [DllImport("Kernel32")]
-        //private static extern bool SetConsoleCtrlHandler(ConsoleCtrlHandlerDelegate handler, bool add);
         private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
 
         #endregion --- Win32 API ---
+
+        #region --- APPLICATION ENVIRONMENT ---
 
         private delegate bool EventHandler(CtrlType sig);
         static EventHandler applicationExitHandler;
@@ -61,9 +80,11 @@ namespace Application.Config
         private static string sourceDirectory;
         private static string workingDirectory;
 
-        #region --- APPLICATION ENVIRONMENT ---
-        public static AppConfig SetEnvironment()
+        public static AppConfig SetupFromConfig()
         {
+            // default window setup
+            SetupWindow();
+
             ConfigurationLoad();
 
             // Set initial window position
@@ -91,19 +112,40 @@ namespace Application.Config
         public static string GetWorkingDirectory()
             => workingDirectory;
 
-        private static void ConfigurationLoad()
+        private static void SetupWindow()
         {
-            // Get appsettings.json config.
-            configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build()
-                .Get<AppConfig>();
+            Console.BufferHeight = Int16.MaxValue - 1;
+            //Console.SetBufferSize(Console.WindowWidth, Console.WindowHeight);
+            Console.CursorVisible = false;
+
+            IntPtr handle = GetConsoleWindow();
+            IntPtr sysMenu = GetSystemMenu(handle, false);
+
+            if (handle != IntPtr.Zero)
+            {
+                //DeleteMenu(sysMenu, SC_MINIMIZE, MF_BYCOMMAND);
+                DeleteMenu(sysMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+                DeleteMenu(sysMenu, SC_SIZE, MF_BYCOMMAND);
+            }
         }
 
-        private static void ParseArguments(string[] args)
+        private static void ConfigurationLoad()
         {
-
+            try
+            {
+                // Get appsettings.json config
+                // AddEnvironmentVariables() requires package: Microsoft.Extensions.Configuration.EnvironmentVariables
+                configuration = new ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddEnvironmentVariables()
+                    .Build()
+                    .Get<AppConfig>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Application Exception: [{ex}].");
+            }
         }
 
         private static void SetLogging()
@@ -123,7 +165,7 @@ namespace Application.Config
                     int levels = 0;
                     foreach (string item in logLevels)
                     {
-                        foreach (LOGLEVELS level in LogLevels.LogLevelsDictonary.Where(x => x.Value.Equals(item)).Select(x => x.Key))
+                        foreach (LOGLEVELS level in LogLevels.LogLevelsDictionary.Where(x => x.Value.Equals(item)).Select(x => x.Key))
                         {
                             levels += (int)level;
                         }
@@ -188,9 +230,9 @@ namespace Application.Config
         {
             string fullName = Assembly.GetEntryAssembly().Location;
             string path = Directory.GetCurrentDirectory();
-            
+
             sourceDirectory = path + "\\in\\";
-            if (!Directory.Exists(sourceDirectory)) 
+            if (!Directory.Exists(sourceDirectory))
             {
                 Directory.CreateDirectory(sourceDirectory);
             }

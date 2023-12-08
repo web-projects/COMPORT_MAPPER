@@ -1,6 +1,7 @@
 ﻿using System;
+using Application.Config;
 
-namespace Application.Config
+namespace ComportMapper.Config.Application
 {
     internal class Application
     {

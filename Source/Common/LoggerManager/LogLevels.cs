@@ -24,7 +24,7 @@ namespace Common.LoggerManager
 
     public static class LogLevels
     {
-        public static Dictionary<LOGLEVELS, string> LogLevelsDictonary = new Dictionary<LOGLEVELS, string>()
+        public static Dictionary<LOGLEVELS, string> LogLevelsDictionary = new Dictionary<LOGLEVELS, string>()
         {
             { LOGLEVELS.NONE   , "NONE"    },
             { LOGLEVELS.DEBUG  , "DEBUG"   },

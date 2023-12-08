@@ -1,5 +1,6 @@
 ﻿using Application.Config;
 using ComportMapper.ComPortFinder;
+using ComportMapper.Config.Application;
 using System;
 
 namespace COMPORT_MAPPER
@@ -10,7 +11,7 @@ namespace COMPORT_MAPPER
 
         static void Main(string[] args)
         {
-            configuration = SetupEnvironment.SetEnvironment();
+            configuration = SetupEnvironment.SetupFromConfig();
 
             // search for all available Ports
             if (ComportSearcher.FindAllComports() > 0)
